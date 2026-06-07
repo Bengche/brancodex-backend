@@ -5,9 +5,43 @@ const { body, param, validationResult } = require("express-validator");
 const pool       = require("../db/pool");
 const adminGuard = require("../middleware/adminGuard");
 
+const bcrypt = require("bcryptjs");
+
 const router = express.Router();
 
-// All admin routes require the admin token
+// ── Login (public — no adminGuard) ───────────────────────────────────────────
+// POST /api/admin/login  { email, password }
+// Returns the ADMIN_SECRET token so the frontend can use it for all other calls.
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body || {};
+  const adminEmail    = process.env.ADMIN_EMAIL    || "contact@brancodex.com";
+  const adminPassword = process.env.ADMIN_PASSWORD || "";
+
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required." });
+  }
+
+  if (email.toLowerCase().trim() !== adminEmail.toLowerCase()) {
+    return res.status(401).json({ error: "Invalid credentials." });
+  }
+
+  // ADMIN_PASSWORD is stored as a bcrypt hash OR as plain text for first-run.
+  // We support both: try bcrypt compare first, fall back to direct comparison.
+  let valid = false;
+  if (adminPassword.startsWith("$2")) {
+    valid = await bcrypt.compare(password, adminPassword);
+  } else {
+    valid = password === adminPassword;
+  }
+
+  if (!valid) {
+    return res.status(401).json({ error: "Invalid credentials." });
+  }
+
+  return res.json({ token: process.env.ADMIN_SECRET });
+});
+
+// All routes below require the admin token
 router.use(adminGuard);
 
 // ── Health (token test) ──────────────────────────────────────────────────────
