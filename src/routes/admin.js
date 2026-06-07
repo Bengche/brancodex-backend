@@ -1,0 +1,142 @@
+"use strict";
+
+const express    = require("express");
+const { body, param, validationResult } = require("express-validator");
+const pool       = require("../db/pool");
+const adminGuard = require("../middleware/adminGuard");
+
+const router = express.Router();
+
+// All admin routes require the admin token
+router.use(adminGuard);
+
+// ── Health (token test) ──────────────────────────────────────────────────────
+router.get("/health", (_req, res) => res.json({ ok: true }));
+
+// ── Contacts ─────────────────────────────────────────────────────────────────
+router.get("/contacts", async (_req, res) => {
+  const { rows } = await pool.query(
+    "SELECT * FROM contacts ORDER BY created_at DESC",
+  );
+  res.json(rows);
+});
+
+router.patch("/contacts/:id/read", async (req, res) => {
+  await pool.query("UPDATE contacts SET read = TRUE WHERE id = $1", [req.params.id]);
+  res.json({ ok: true });
+});
+
+// ── Testimonials ─────────────────────────────────────────────────────────────
+router.get("/testimonials", async (_req, res) => {
+  const { rows } = await pool.query(
+    "SELECT * FROM testimonials ORDER BY created_at DESC",
+  );
+  res.json(rows);
+});
+
+router.patch(
+  "/testimonials/:id",
+  [body("status").isIn(["approved", "rejected", "pending"])],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+    await pool.query(
+      "UPDATE testimonials SET status = $1 WHERE id = $2",
+      [req.body.status, req.params.id],
+    );
+    res.json({ ok: true });
+  },
+);
+
+// ── Availability ──────────────────────────────────────────────────────────────
+router.get("/availability", async (_req, res) => {
+  const { rows } = await pool.query("SELECT * FROM availability WHERE id = 1");
+  res.json(rows[0] || null);
+});
+
+router.patch(
+  "/availability",
+  [
+    body("status").isIn(["available", "busy", "limited"]),
+    body("message").trim().notEmpty().isLength({ max: 200 }).escape(),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+    const { status, message } = req.body;
+    await pool.query(
+      `UPDATE availability SET status = $1, message = $2, updated_at = NOW()
+       WHERE id = 1`,
+      [status, message],
+    );
+    res.json({ ok: true });
+  },
+);
+
+// ── Weekly challenges ─────────────────────────────────────────────────────────
+router.get("/challenges", async (_req, res) => {
+  const { rows } = await pool.query(
+    "SELECT * FROM weekly_challenges ORDER BY week_start DESC",
+  );
+  res.json(rows);
+});
+
+router.post(
+  "/challenges",
+  [
+    body("title").trim().notEmpty().isLength({ max: 200 }).escape(),
+    body("description").trim().notEmpty().isLength({ max: 2000 }).escape(),
+    body("type").isIn(["css", "js", "html", "puzzle"]),
+    body("week_start").isDate(),
+    body("starter_html").optional().isString().isLength({ max: 10000 }),
+    body("starter_css").optional().isString().isLength({ max: 10000 }),
+    body("starter_js").optional().isString().isLength({ max: 10000 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+
+    const { title, description, type, week_start, starter_html = "", starter_css = "", starter_js = "" } = req.body;
+    // Deactivate any currently active challenge
+    await pool.query("UPDATE weekly_challenges SET active = FALSE WHERE active = TRUE");
+    const { rows } = await pool.query(
+      `INSERT INTO weekly_challenges (title, description, type, starter_html, starter_css, starter_js, week_start, active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+       ON CONFLICT (week_start) DO UPDATE
+         SET title=$1, description=$2, type=$3, starter_html=$4,
+             starter_css=$5, starter_js=$6, active=TRUE
+       RETURNING *`,
+      [title, description, type, starter_html, starter_css, starter_js, week_start],
+    );
+    res.status(201).json(rows[0]);
+  },
+);
+
+router.patch("/challenges/:id/activate", async (req, res) => {
+  await pool.query("UPDATE weekly_challenges SET active = FALSE WHERE active = TRUE");
+  await pool.query("UPDATE weekly_challenges SET active = TRUE WHERE id = $1", [req.params.id]);
+  res.json({ ok: true });
+});
+
+// ── Leaderboard ───────────────────────────────────────────────────────────────
+router.get("/leaderboard", async (_req, res) => {
+  const { rows } = await pool.query(
+    "SELECT * FROM leaderboard_entries ORDER BY game, score DESC",
+  );
+  res.json(rows);
+});
+
+router.delete("/leaderboard/:id", async (req, res) => {
+  await pool.query("DELETE FROM leaderboard_entries WHERE id = $1", [req.params.id]);
+  res.json({ ok: true });
+});
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+router.get("/users", async (_req, res) => {
+  const { rows } = await pool.query(
+    "SELECT id, name, email, verified, created_at FROM users ORDER BY created_at DESC",
+  );
+  res.json(rows);
+});
+
+module.exports = router;
