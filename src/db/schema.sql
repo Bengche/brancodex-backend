@@ -126,6 +126,54 @@ FROM (
 ) AS seed(game, player, score)
 WHERE NOT EXISTS (SELECT 1 FROM leaderboard_entries LIMIT 1);
 
+-- Seed testimonials from Google Sheets (first deploy only — migrated 2026-06-07)
+INSERT INTO testimonials (name, review, rating, photo_url, status, created_at)
+SELECT *
+FROM (
+  VALUES
+    (
+      'School Boy Pee',
+      'How amazing this is. Very professional',
+      5,
+      NULL,
+      'approved',
+      '2025-07-04T18:10:44.881Z'::TIMESTAMPTZ
+    ),
+    (
+      'The Law',
+      'Wow, this is smooth and the added functionalities are brilliant, not just a static website, but very interactive. Well done!',
+      5,
+      'https://i.ibb.co/Rpv8C9Yr/pexels-ekaterina-bolovtsova-6077326.jpg',
+      'approved',
+      '2025-09-01T19:29:04.550Z'::TIMESTAMPTZ
+    ),
+    (
+      'Frankline',
+      'Am happy I choose Brancodex to build my site, the site is very professional, and by just looking at it, am extremely happy. I honestly can''t wait for more. Thank you Brancodex',
+      5,
+      NULL,
+      'approved',
+      '2026-03-20T05:40:36.546Z'::TIMESTAMPTZ
+    ),
+    (
+      'Louis',
+      'Very simple to use website, and straight forward, no stress. Nice one',
+      5,
+      'https://i.ibb.co/gMv5Wz3V/1000269110.jpg',
+      'approved',
+      '2026-03-29T23:21:49.550Z'::TIMESTAMPTZ
+    ),
+    (
+      'Ngwa',
+      'The amount of efforts they put in is incredible. I have had a professional website from brancodex, and it is serving me really well, and also ranking too. Great web developers. I recommend brancodex to you all.',
+      5,
+      NULL,
+      'approved',
+      '2026-04-15T14:21:01.370Z'::TIMESTAMPTZ
+    )
+) AS seed(name, review, rating, photo_url, status, created_at)
+WHERE NOT EXISTS (SELECT 1 FROM testimonials LIMIT 1);
+
 -- Seed weekly challenge (first deploy only)
 DO $$
 DECLARE v_week DATE;
