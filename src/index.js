@@ -66,6 +66,14 @@ app.use(
 // request bodies that could cause DoS via memory exhaustion.
 app.use(express.json({ limit: "100kb" }));
 
+// ── URL normalisation ─────────────────────────────────────────────────────────
+// Collapse any accidental double-slashes (e.g. //api/...) that arise when
+// NEXT_PUBLIC_BACKEND_URL is stored with a trailing slash in Vercel env vars.
+app.use((req, _res, next) => {
+  req.url = req.url.replace(/\/{2,}/g, "/");
+  next();
+});
+
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
