@@ -31,9 +31,6 @@ const newsletterRouter = require("./routes/newsletter");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// ── Security headers ──────────────────────────────────────────────────────────
-app.use(helmet());
-
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // Production origins are hardcoded as a fallback so the site always works
 // even if the ALLOWED_ORIGINS env var is missing or misconfigured on Railway.
@@ -69,9 +66,13 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Handle OPTIONS preflight explicitly before any other middleware
+// Handle OPTIONS preflight explicitly before any other middleware (including helmet)
 app.options("*", cors(corsOptions));
 app.use(cors(corsOptions));
+
+// ── Security headers ──────────────────────────────────────────────────────────
+// Helmet is registered AFTER cors so it never interferes with CORS preflight.
+app.use(helmet());
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
 // Hard cap at 10 kb — leaderboard payloads are tiny; this blocks oversized
