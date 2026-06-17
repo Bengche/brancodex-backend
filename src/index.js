@@ -35,31 +35,43 @@ const PORT = process.env.PORT || 4000;
 app.use(helmet());
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "")
-  .split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
+// Production origins are hardcoded as a fallback so the site always works
+// even if the ALLOWED_ORIGINS env var is missing or misconfigured on Railway.
+const PRODUCTION_ORIGINS = [
+  "https://www.brancodex.com",
+  "https://brancodex.com",
+];
 
-// Always permit localhost during development even if env var is unset
+const ALLOWED_ORIGINS = [
+  ...PRODUCTION_ORIGINS,
+  ...(process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
+];
+
+// Always permit localhost during development
 if (process.env.NODE_ENV !== "production") {
   ALLOWED_ORIGINS.push("http://localhost:3000", "http://localhost:3001");
 }
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow server-to-server requests (no Origin header) or known origins
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS: origin '${origin}' is not allowed.`));
-      }
-    },
-    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    optionsSuccessStatus: 204,
-  }),
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server requests (no Origin header) or known origins
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin '${origin}' is not allowed.`));
+    }
+  },
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+};
+
+// Handle OPTIONS preflight explicitly before any other middleware
+app.options("*", cors(corsOptions));
+app.use(cors(corsOptions));
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
 // Hard cap at 10 kb — leaderboard payloads are tiny; this blocks oversized
