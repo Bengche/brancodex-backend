@@ -162,8 +162,15 @@ function contactNotificationHtml(name, email, message) {
     ${p(`A visitor just submitted a message through the BranCodeX contact form.`)}
     ${infoBox([
       ["From", `<strong>${name}</strong>`],
-      ["Email", `<a href="mailto:${email}" style="color:#4f46e5;text-decoration:none;">${email}</a>`],
-      ["Received", new Date().toLocaleString("en-GB", { timeZone: "Africa/Douala" }) + " WAT"],
+      [
+        "Email",
+        `<a href="mailto:${email}" style="color:#4f46e5;text-decoration:none;">${email}</a>`,
+      ],
+      [
+        "Received",
+        new Date().toLocaleString("en-GB", { timeZone: "Africa/Douala" }) +
+          " WAT",
+      ],
     ])}
     <div style="background:#f8fafc;border-left:4px solid #4f46e5;border-radius:0 8px 8px 0;
                 padding:16px 20px;margin:0 0 24px;">
@@ -196,8 +203,10 @@ function verificationEmailHtml(name, verifyUrl) {
         <span style="word-break:break-all;color:#4f46e5;">${verifyUrl}</span>
       </p>
     </div>
-    ${p(`If you did not create a BranCodeX account, you can safely ignore this email.`,
-        "font-size:13px;color:#94a3b8;")}
+    ${p(
+      `If you did not create a BranCodeX account, you can safely ignore this email.`,
+      "font-size:13px;color:#94a3b8;",
+    )}
     `,
   );
 }
@@ -214,9 +223,21 @@ function welcomeEmailHtml(name) {
     <!-- Feature highlights -->
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 28px;">
       ${[
-        ["🏆", "Global Leaderboards", "Compete with players worldwide in our Quiz and Guess &amp; Challenge games."],
-        ["💻", "Live Code Editor", "Write and share HTML, CSS &amp; JS snippets in your browser — instantly."],
-        ["📚", "Dev Blog", "Practical articles on web development, business, and Cameroonian tech."],
+        [
+          "🏆",
+          "Global Leaderboards",
+          "Compete with players worldwide in our Quiz and Guess &amp; Challenge games.",
+        ],
+        [
+          "💻",
+          "Live Code Editor",
+          "Write and share HTML, CSS &amp; JS snippets in your browser — instantly.",
+        ],
+        [
+          "📚",
+          "Dev Blog",
+          "Practical articles on web development, business, and Cameroonian tech.",
+        ],
       ]
         .map(
           ([icon, title, desc]) => `
@@ -237,8 +258,10 @@ function welcomeEmailHtml(name) {
     <div style="text-align:center;margin:28px 0 8px;">
       ${btn("Explore BranCodeX", SITE_URL)}
     </div>
-    ${p(`If you have any questions, simply reply to this email — we read every message.`,
-        "font-size:13px;color:#94a3b8;text-align:center;")}
+    ${p(
+      `If you have any questions, simply reply to this email — we read every message.`,
+      "font-size:13px;color:#94a3b8;text-align:center;",
+    )}
     `,
   );
 }
@@ -271,7 +294,11 @@ function testimonialNotificationHtml(name, review, rating) {
     ${infoBox([
       ["Name", `<strong>${name}</strong>`],
       ["Rating", stars],
-      ["Submitted", new Date().toLocaleString("en-GB", { timeZone: "Africa/Douala" }) + " WAT"],
+      [
+        "Submitted",
+        new Date().toLocaleString("en-GB", { timeZone: "Africa/Douala" }) +
+          " WAT",
+      ],
     ])}
     <div style="background:#f8fafc;border-left:4px solid #fbbf24;border-radius:0 8px 8px 0;
                 padding:16px 20px;margin:0 0 24px;">
@@ -286,6 +313,46 @@ function testimonialNotificationHtml(name, review, rating) {
   );
 }
 
+// ── 6. Newsletter subscription confirmation ───────────────────────────────────
+function newsletterConfirmationHtml(unsubscribeToken) {
+  const unsubUrl = `${SITE_URL}/api/newsletter/unsubscribe?token=${unsubscribeToken}`;
+  return shell(
+    "You're subscribed to BranCodeX updates!",
+    `
+    ${h1("You're in!")}
+    ${p(`You have successfully subscribed to the <strong style="color:#4f46e5;">BranCodeX Newsletter</strong>.
+         You'll be the first to know about new projects, blog posts, tips, and special offers.`)}
+    <div style="text-align:center;margin:28px 0;">
+      ${btn("Explore BranCodeX", SITE_URL)}
+    </div>
+    ${p(
+      `If you didn't subscribe or wish to stop receiving emails, you can
+         <a href="${unsubUrl}" style="color:#4f46e5;text-decoration:none;">unsubscribe here</a>.`,
+      "font-size:13px;color:#94a3b8;",
+    )}
+    `,
+  );
+}
+
+// ── 7. Bulk newsletter (from admin) ───────────────────────────────────────────
+function newsletterBroadcastHtml(subject, bodyContent, unsubscribeToken) {
+  const unsubUrl = `${SITE_URL}/api/newsletter/unsubscribe?token=${unsubscribeToken}`;
+  // bodyContent is already HTML written by the admin
+  return shell(
+    subject,
+    `
+    ${bodyContent}
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;">
+      ${p(
+        `If you no longer wish to receive these emails, you can
+           <a href="${unsubUrl}" style="color:#4f46e5;text-decoration:none;">unsubscribe here</a>.`,
+        "font-size:12px;color:#94a3b8;",
+      )}
+    </div>
+    `,
+  );
+}
+
 // ── Send helpers ──────────────────────────────────────────────────────────────
 async function send(to, subject, html) {
   await sgMail.send({ from: FROM, to, subject, html });
@@ -293,20 +360,54 @@ async function send(to, subject, html) {
 
 module.exports = {
   sendContactConfirmation: (to, name) =>
-    send(to, "We received your message — BranCodeX", contactConfirmationHtml(name)),
+    send(
+      to,
+      "We received your message — BranCodeX",
+      contactConfirmationHtml(name),
+    ),
 
   sendContactNotification: (name, email, message) =>
-    send(ADMIN_EMAIL, `New message from ${name}`, contactNotificationHtml(name, email, message)),
+    send(
+      ADMIN_EMAIL,
+      `New message from ${name}`,
+      contactNotificationHtml(name, email, message),
+    ),
 
   sendVerificationEmail: (to, name, verifyUrl) =>
-    send(to, "Verify your BranCodeX account", verificationEmailHtml(name, verifyUrl)),
+    send(
+      to,
+      "Verify your BranCodeX account",
+      verificationEmailHtml(name, verifyUrl),
+    ),
 
   sendWelcomeEmail: (to, name) =>
     send(to, `Welcome to BranCodeX, ${name}!`, welcomeEmailHtml(name)),
 
   sendTestimonialReceipt: (to, name) =>
-    send(to, "Thank you for your review — BranCodeX", testimonialReceiptHtml(name)),
+    send(
+      to,
+      "Thank you for your review — BranCodeX",
+      testimonialReceiptHtml(name),
+    ),
 
   sendTestimonialNotification: (name, review, rating) =>
-    send(ADMIN_EMAIL, `New ${rating}-star testimonial from ${name}`, testimonialNotificationHtml(name, review, rating)),
+    send(
+      ADMIN_EMAIL,
+      `New ${rating}-star testimonial from ${name}`,
+      testimonialNotificationHtml(name, review, rating),
+    ),
+
+  sendNewsletterConfirmation: (to, unsubscribeToken) =>
+    send(
+      to,
+      "You're subscribed to BranCodeX Newsletter",
+      newsletterConfirmationHtml(unsubscribeToken),
+    ),
+
+  sendNewsletterBroadcast: (to, subject, bodyContent, unsubscribeToken) =>
+    send(
+      to,
+      subject,
+      newsletterBroadcastHtml(subject, bodyContent, unsubscribeToken),
+    ),
 };

@@ -96,6 +96,17 @@ CREATE TABLE IF NOT EXISTS weekly_challenges (
   created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
+-- Newsletter subscribers
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id               SERIAL       PRIMARY KEY,
+  email            VARCHAR(254) UNIQUE NOT NULL,
+  unsubscribe_token TEXT         NOT NULL,
+  subscribed       BOOLEAN      NOT NULL DEFAULT TRUE,
+  created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_newsletter_email ON newsletter_subscribers (email);
+CREATE INDEX IF NOT EXISTS idx_newsletter_token ON newsletter_subscribers (unsubscribe_token);
+
 -- Availability (singleton)
 CREATE TABLE IF NOT EXISTS availability (
   id         INTEGER     PRIMARY KEY DEFAULT 1 CHECK (id = 1),

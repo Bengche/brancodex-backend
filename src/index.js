@@ -13,21 +13,22 @@
 
 require("dotenv").config();
 
-const express  = require("express");
-const helmet   = require("helmet");
-const cors     = require("cors");
-const migrate  = require("./db/migrate");
+const express = require("express");
+const helmet = require("helmet");
+const cors = require("cors");
+const migrate = require("./db/migrate");
 
-const leaderboardRouter  = require("./routes/leaderboard");
-const contactRouter      = require("./routes/contact");
+const leaderboardRouter = require("./routes/leaderboard");
+const contactRouter = require("./routes/contact");
 const testimonialsRouter = require("./routes/testimonials");
-const projectsRouter     = require("./routes/projects");
-const snippetsRouter     = require("./routes/snippets");
-const challengesRouter   = require("./routes/challenges");
-const authRouter         = require("./routes/auth");
-const adminRouter        = require("./routes/admin");
+const projectsRouter = require("./routes/projects");
+const snippetsRouter = require("./routes/snippets");
+const challengesRouter = require("./routes/challenges");
+const authRouter = require("./routes/auth");
+const adminRouter = require("./routes/admin");
+const newsletterRouter = require("./routes/newsletter");
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 4000;
 
 // ── Security headers ──────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ app.use(
         callback(new Error(`CORS: origin '${origin}' is not allowed.`));
       }
     },
-    methods: ["GET", "POST", "OPTIONS"],
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 204,
   }),
@@ -63,7 +64,7 @@ app.use(
 // ── Body parsing ──────────────────────────────────────────────────────────────
 // Hard cap at 10 kb — leaderboard payloads are tiny; this blocks oversized
 // request bodies that could cause DoS via memory exhaustion.
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "100kb" }));
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
@@ -71,14 +72,15 @@ app.get("/api/health", (_req, res) => {
 });
 
 // ── Feature routers ───────────────────────────────────────────────────────────
-app.use("/api/leaderboard",  leaderboardRouter);
-app.use("/api/contact",      contactRouter);
+app.use("/api/leaderboard", leaderboardRouter);
+app.use("/api/contact", contactRouter);
 app.use("/api/testimonials", testimonialsRouter);
-app.use("/api/projects",     projectsRouter);
-app.use("/api/snippets",     snippetsRouter);
-app.use("/api/challenges",   challengesRouter);
-app.use("/api/auth",         authRouter);
-app.use("/api/admin",        adminRouter);
+app.use("/api/projects", projectsRouter);
+app.use("/api/snippets", snippetsRouter);
+app.use("/api/challenges", challengesRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/admin", adminRouter);
+app.use("/api/newsletter", newsletterRouter);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((_req, res) => {
@@ -90,7 +92,9 @@ app.use((_req, res) => {
 app.use((err, _req, res, _next) => {
   // Don't leak internal error details to clients in production
   const message =
-    process.env.NODE_ENV === "production" ? "Internal server error." : err.message;
+    process.env.NODE_ENV === "production"
+      ? "Internal server error."
+      : err.message;
   console.error("[error]", err.message);
   res.status(err.status || 500).json({ error: message });
 });
