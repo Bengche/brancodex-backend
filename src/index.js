@@ -15,7 +15,6 @@ require("dotenv").config();
 
 const express = require("express");
 const helmet = require("helmet");
-const cors = require("cors");
 const migrate = require("./db/migrate");
 
 const leaderboardRouter = require("./routes/leaderboard");
@@ -52,23 +51,31 @@ if (process.env.NODE_ENV !== "production") {
   ALLOWED_ORIGINS.push("http://localhost:3000", "http://localhost:3001");
 }
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow server-to-server requests (no Origin header) or known origins
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS: origin '${origin}' is not allowed.`));
-    }
-  },
-  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 204,
-};
-
-// Handle OPTIONS preflight explicitly before any other middleware (including helmet)
-app.options("*", cors(corsOptions));
-app.use(cors(corsOptions));
+// Set CORS headers manually — most reliable approach, not subject to
+// middleware ordering or cors-package quirks on Railway.
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader(
+      "Access-Control-Allow-Origin",
+      origin || "*"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PATCH, DELETE, OPTIONS"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+    res.setHeader("Vary", "Origin");
+  }
+  // Short-circuit all OPTIONS preflight requests immediately
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+  next();
+});
 
 // ── Security headers ──────────────────────────────────────────────────────────
 // Helmet is registered AFTER cors so it never interferes with CORS preflight.
