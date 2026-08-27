@@ -83,18 +83,36 @@ CREATE TABLE IF NOT EXISTS snippets (
 
 -- Weekly challenges
 CREATE TABLE IF NOT EXISTS weekly_challenges (
-  id           SERIAL       PRIMARY KEY,
-  title        VARCHAR(200) NOT NULL,
-  description  TEXT         NOT NULL,
-  type         VARCHAR(20)  NOT NULL DEFAULT 'css'
-                 CHECK (type IN ('css', 'js', 'html', 'puzzle')),
-  starter_html TEXT         NOT NULL DEFAULT '',
-  starter_css  TEXT         NOT NULL DEFAULT '',
-  starter_js   TEXT         NOT NULL DEFAULT '',
-  week_start   DATE         NOT NULL UNIQUE,
-  active       BOOLEAN      NOT NULL DEFAULT FALSE,
-  created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+  id            SERIAL       PRIMARY KEY,
+  title         VARCHAR(200) NOT NULL,
+  description   TEXT         NOT NULL,
+  type          VARCHAR(20)  NOT NULL DEFAULT 'css'
+                  CHECK (type IN ('css', 'js', 'html', 'puzzle')),
+  starter_html  TEXT         NOT NULL DEFAULT '',
+  starter_css   TEXT         NOT NULL DEFAULT '',
+  starter_js    TEXT         NOT NULL DEFAULT '',
+  solution_html TEXT         NOT NULL DEFAULT '',
+  solution_css  TEXT         NOT NULL DEFAULT '',
+  solution_js   TEXT         NOT NULL DEFAULT '',
+  week_start    DATE         NOT NULL UNIQUE,
+  active        BOOLEAN      NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
+
+-- Add solution columns to existing installs (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'weekly_challenges' AND column_name = 'solution_html'
+  ) THEN
+    ALTER TABLE weekly_challenges
+      ADD COLUMN solution_html TEXT NOT NULL DEFAULT '',
+      ADD COLUMN solution_css  TEXT NOT NULL DEFAULT '',
+      ADD COLUMN solution_js   TEXT NOT NULL DEFAULT '';
+  END IF;
+END;
+$$;
 
 -- Newsletter subscribers
 CREATE TABLE IF NOT EXISTS newsletter_subscribers (
