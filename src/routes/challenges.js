@@ -6,14 +6,16 @@ const { readLimiter } = require("../middleware/rateLimiter");
 
 const router = express.Router();
 
-// GET /api/challenges/active — current week's challenge
+// GET /api/challenges/active — returns the challenge whose week_start is on or
+// before today, picking the most recent one. No manual toggling needed: just
+// insert a row with next Monday's week_start and it goes live automatically.
 router.get("/active", readLimiter, async (_req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, title, description, type,
               starter_html, starter_css, starter_js, week_start
          FROM weekly_challenges
-        WHERE active = TRUE
+        WHERE week_start <= CURRENT_DATE
         ORDER BY week_start DESC
         LIMIT 1`,
     );
