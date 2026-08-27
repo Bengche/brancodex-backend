@@ -30,6 +30,9 @@ const newsletterRouter = require("./routes/newsletter");
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Trust the first proxy hop (Render / Railway / any reverse-proxy host)
+app.set("trust proxy", 1);
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // Production origins are hardcoded as a fallback so the site always works
 // even if the ALLOWED_ORIGINS env var is missing or misconfigured on Railway.
