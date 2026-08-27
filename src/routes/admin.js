@@ -129,6 +129,9 @@ router.post(
     body("starter_html").optional().isString().isLength({ max: 10000 }),
     body("starter_css").optional().isString().isLength({ max: 10000 }),
     body("starter_js").optional().isString().isLength({ max: 10000 }),
+    body("solution_html").optional().isString().isLength({ max: 10000 }),
+    body("solution_css").optional().isString().isLength({ max: 10000 }),
+    body("solution_js").optional().isString().isLength({ max: 10000 }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -143,17 +146,24 @@ router.post(
       starter_html = "",
       starter_css = "",
       starter_js = "",
+      solution_html = "",
+      solution_css = "",
+      solution_js = "",
     } = req.body;
     // Deactivate any currently active challenge
     await pool.query(
       "UPDATE weekly_challenges SET active = FALSE WHERE active = TRUE",
     );
     const { rows } = await pool.query(
-      `INSERT INTO weekly_challenges (title, description, type, starter_html, starter_css, starter_js, week_start, active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+      `INSERT INTO weekly_challenges
+         (title, description, type, starter_html, starter_css, starter_js,
+          solution_html, solution_css, solution_js, week_start, active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,TRUE)
        ON CONFLICT (week_start) DO UPDATE
-         SET title=$1, description=$2, type=$3, starter_html=$4,
-             starter_css=$5, starter_js=$6, active=TRUE
+         SET title=$1, description=$2, type=$3,
+             starter_html=$4, starter_css=$5, starter_js=$6,
+             solution_html=$7, solution_css=$8, solution_js=$9,
+             active=TRUE
        RETURNING *`,
       [
         title,
@@ -162,6 +172,9 @@ router.post(
         starter_html,
         starter_css,
         starter_js,
+        solution_html,
+        solution_css,
+        solution_js,
         week_start,
       ],
     );
